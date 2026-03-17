@@ -41,3 +41,38 @@ export const registerUser = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const loginUser=async(req:Request,res:Response)=>{
+  try {
+    const{email,password}=req.body
+    //chec=k user
+    const user=await User.findOne({email});
+    if(!user){
+      return res.status(400).json({message:"Invalid credentials"})
+
+    }
+    //match psswrd
+    const isMatch =await bcrypt.compare(password,user.password);
+    if(!isMatch){
+   return res.status(400).json({message:"Invalid credentials"})
+
+    }
+    const token =jwt.sign(
+      {id:user._id},
+      process.env.JWT_SECRET as string,
+      {expiresIn:"7D"}
+
+    )
+    res.json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error:any) {
+    res.status(500).json({ message: error.message });
+  }
+}
