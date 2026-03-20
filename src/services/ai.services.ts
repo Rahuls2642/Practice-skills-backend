@@ -67,7 +67,6 @@ const callWithRetry = async (
       });
 
       const raw = response.choices[0].message.content;
-      console.log("RAW AI RESPONSE:", JSON.stringify(raw));
       return safeParseJSON<object[]>(raw);
     } catch (err) {
       if (attempt === retries) throw err;
@@ -77,7 +76,7 @@ const callWithRetry = async (
   return [];
 };
 
-// Generate questions
+
 export const generateQuestions = async (skill: string, type: string) => {
   let prompt = "";
 
@@ -100,7 +99,7 @@ Rules:
   }
 
   if (type === "coding") {
-    prompt = `Generate exactly 2 coding questions about "${skill}".
+    prompt = `Generate exactly 3 coding questions about "${skill}".
 
 Output a single JSON array with this exact structure:
 [

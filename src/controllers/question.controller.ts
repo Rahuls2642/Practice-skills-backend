@@ -1,7 +1,7 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import Question from "../models/Question";
 
-export const getQuestions = async (req: Request, res: Response) => {
+export const getQuestions = async (req: Request, res: Response,next:NextFunction) => {
   try {
     const { skill, type } = req.query;
 
@@ -13,7 +13,7 @@ export const getQuestions = async (req: Request, res: Response) => {
     const questions = await Question.find(query).limit(10);
 
     res.json(questions);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
-  }
+  } catch (error) {
+  next(error);
+}
 };

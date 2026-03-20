@@ -6,7 +6,8 @@ export interface IQuestion extends Document {
   difficulty: "easy" | "medium" | "hard";
   question: string;
   options?: string[];
-  answer?: string; 
+  answer?: string;
+  language?: string; 
   testCases?: { input: string; output: string }[];
 }
 
@@ -30,17 +31,24 @@ const questionSchema = new Schema<IQuestion>(
       type: String,
       required: true,
     },
+    language: {
+  type: String,
+  enum: ["javascript", "java", "python"],
+  required: function (this: IQuestion) {
+    return this.type === "coding"; 
+  },
+},
     options: [String],
     answer: {
       type: String,
-      // ✅ only required for mcq and interview, not coding
+    
       required: function (this: IQuestion) {
         return this.type !== "coding";
       },
     },
     testCases: [
       {
-        input: Schema.Types.Mixed, // ✅ Mixed because AI returns objects too, not just strings
+        input: Schema.Types.Mixed, 
         output: Schema.Types.Mixed,
       },
     ],

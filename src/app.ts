@@ -4,6 +4,7 @@ import questionRoutes from "./routes/question.routes"
 import { protect } from "./middleware/auth.middleware";
 import sessionRoutes from "./routes/session.routes"
 import reportRoutes from "./routes/report.routes"
+import { errorHandler } from "./middleware/error.middleware";
 import cors from "cors"
 const app=express()
 app.use(cors())
@@ -18,4 +19,5 @@ app.get("/api/test", protect, (req, res) => {
 app.get('/',(req,res)=>{
     res.send("API is running...")
 })
+app.use(errorHandler)
 export default app;

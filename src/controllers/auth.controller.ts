@@ -1,9 +1,9 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
 
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (req: Request, res: Response,next:NextFunction) => {
   try {
     const { name, email, password } = req.body;
 
@@ -37,12 +37,12 @@ export const registerUser = async (req: Request, res: Response) => {
         email: user.email,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
-  }
+  } catch (error) {
+  next(error);
+}
 };
 
-export const loginUser=async(req:Request,res:Response)=>{
+export const loginUser=async(req:Request,res:Response,next:NextFunction)=>{
   try {
     const{email,password}=req.body
     //chec=k user
@@ -72,7 +72,7 @@ export const loginUser=async(req:Request,res:Response)=>{
         email: user.email,
       },
     });
-  } catch (error:any) {
-    res.status(500).json({ message: error.message });
-  }
+  } catch (error) {
+  next(error);
+}
 }

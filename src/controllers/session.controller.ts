@@ -5,6 +5,7 @@ import { AuthRequest } from "../middleware/auth.middleware";
 import { getFeedback } from "../services/ai.services";
 import { runCode } from "../services/codeExecution.services";
 
+
 export const startSession = async (req: AuthRequest, res: Response) => {
   try {
     const { skills, type } = req.body;
@@ -36,9 +37,14 @@ export const startSession = async (req: AuthRequest, res: Response) => {
   }
 };
 
+
 export const submitAnswer = async (req: AuthRequest, res: Response) => {
   try {
-    const { sessionId, questionId, answer } = req.body;
+    const { sessionId, questionId, answer, language } = req.body;
+
+    if (!sessionId || !questionId || !answer) {
+      return res.status(400).json({ message: "Missing fields" });
+    }
 
     const session = await Session.findById(sessionId);
     if (!session) {
@@ -50,63 +56,103 @@ export const submitAnswer = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Question not found" });
     }
 
+  
+  
+    if (question.type === "coding") {
+      const results = [];
+
+      if (!answer.includes("function solution")) {
+        return res.json({
+          correct: false,
+          error: "Define function solution(input)",
+        });
+      }
+
+      for (const testCase of question.testCases || []) {
+        const wrappedCode = `
+${answer}
+
+try {
+  const input = ${JSON.stringify(testCase.input)};
+  const result = solution(input);
+  console.log(result);
+} catch (e) {
+  console.log("ERROR");
+}
+`;
+
+        let output;
+
+        try {
+          output = await runCode(wrappedCode, language);
+        } catch (err) {
+          return res.json({
+            correct: false,
+            error: "Execution failed",
+          });
+        }
+
+        console.log("RAW OUTPUT:", output);
+
+        const actual =
+          output.stdout?.trim() ||
+          output.output?.trim() ||
+          "";
+
+        const expected = testCase.output.trim();
+
+        const passed = actual === expected;
+
+        results.push({
+          input: testCase.input,
+          expected,
+          actual,
+          passed,
+        });
+      }
+
+      const allPassed = results.every((r) => r.passed);
+
+   
+      session.answers.push({
+        questionId,
+        answer,
+        correct: allPassed,
+      });
+
+      await session.save();
+
+      return res.json({
+        correct: allPassed,
+        results,
+      });
+    }
+
+    let isCorrect = false;
+
+    if (question.answer && answer) {
+      isCorrect =
+        question.answer.toLowerCase().trim() ===
+        answer.toLowerCase().trim();
+    }
+
     session.answers.push({
       questionId,
       answer,
-      correct: allPassed,
+      correct: isCorrect,
     });
 
     await session.save();
 
-    if (question.type === "coding") {
-  const results = [];
-
-  for (const testCase of question.testCases || []) {
-    const wrappedCode = `
-${answer}
-
-console.log(solution("${testCase.input}"));
-`;
-
-    const output = await runCode(
-      wrappedCode,
-      testCase.input,
-      "javascript"
-    );
-
-    const actual = output.output?.trim() || "";
-    const expected = testCase.output.trim();
-
-    const passed = actual === expected;
-
-    results.push({
-      input: testCase.input,
-      expected,
-      actual,
-      passed,
-    });
-  }
-
-  const allPassed = results.every((r) => r.passed);
-
-  return res.json({
-    correct: allPassed,
-    results,
-  });
-}
-
-    const isCorrect =
-      question.answer.toLowerCase().trim() === answer.toLowerCase().trim();
-
     const feedback = await getFeedback(
       question.question,
       answer,
-      question.answer,
+      question.answer || ""
     );
 
     return res.json({
       correct: isCorrect,
-      correctAnswer: question.answer,
+      correctAnswer: question.answer || null,
       aiFeedback: feedback,
     });
   } catch (error: any) {
